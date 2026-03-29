@@ -1,0 +1,41 @@
+<main class="single-stage">
+  <div class="ambient ambient--left" aria-hidden="true"></div>
+  <div class="ambient ambient--right" aria-hidden="true"></div>
+  <section class="experience-shell">
+    <button
+      class="character-trigger"
+      type="button"
+      data-trigger
+      aria-label="Reproducir animacion completa del personaje"
+    >
+      <div class="character-frame" data-character-frame>
+        <span class="tap-indicator" data-tap-indicator></span>
+        <canvas class="character-canvas" data-gif-canvas aria-hidden="true"></canvas>
+        <span class="character-glow" data-character-glow aria-hidden="true"></span>
+      </div>
+    </button>
+    <section class="message-card" aria-label="Mensaje principal">
+      <p class="message-eyebrow" data-message-eyebrow></p>
+      <h1 class="message-title" data-message-title></h1>
+      <p class="message-body" data-message-body></p>
+      <!--
+      <div class="gif-review">
+        <div class="gif-review__meta">
+          <span class="gif-review__label" data-preview-label></span>
+          <span class="gif-review__stats" data-review-stats>Frame 1 - 0 ms</span>
+        </div>
+        <input
+          class="gif-review__slider"
+          data-review-slider
+          type="range"
+          min="0"
+          max="0"
+          step="1"
+          value="0"
+          aria-label="Revisar frames del GIF"
+        />
+      </div>
+      -->
+    </section>
+  </section>
+</main>
