@@ -5,6 +5,7 @@ export const appConfig = {
   gifSrc: `${basePath}media/cat-cute.gif`,
   ui: {
     tapIndicator: 'tap me!',
+    tapCounterPrefix: 'x',
     previewLabel: 'Preview',
   },
   message: {
@@ -17,6 +18,7 @@ export const appConfig = {
 export const animationConfig = {
   loopStartFrame: 5,
   loopEndFrame: 11,
+  tapResetDelayMs: 180000,
   tapScale: 1.04,
   tapDuration: 0.28,
   glowDuration: 0.7,

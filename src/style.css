@@ -131,6 +131,26 @@ button {
   box-shadow: 0 14px 28px rgba(98, 45, 62, 0.18);
 }
 
+.tap-counter {
+  position: absolute;
+  top: -14px;
+  left: -10px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  min-width: 66px;
+  min-height: 66px;
+  padding: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 248, 244, 0.96), rgba(244, 212, 202, 0.96));
+  color: var(--text-main);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transform: rotate(-18deg);
+  box-shadow: 0 14px 28px rgba(98, 45, 62, 0.16);
+}
+
 .character-frame.is-error::after {
   content: 'No se pudo cargar el GIF';
   display: grid;

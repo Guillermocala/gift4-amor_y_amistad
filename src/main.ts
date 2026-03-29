@@ -10,6 +10,7 @@ interface AppState {
   isPlayingFullCycle: boolean
   isScrubbing: boolean
   hasWrappedToStart: boolean
+  tapResetTimerId: number | null
   reducedMotion: boolean
 }
 
@@ -34,6 +35,7 @@ const state: AppState = {
   isPlayingFullCycle: false,
   isScrubbing: false,
   hasWrappedToStart: false,
+  tapResetTimerId: null,
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 }
 
@@ -72,6 +74,7 @@ const characterGlow = requireElement<HTMLElement>('[data-character-glow]')
 const messageCard = requireElement<HTMLElement>('.message-card')
 const canvas = requireElement<HTMLCanvasElement>('[data-gif-canvas]')
 const tapIndicator = requireElement<HTMLElement>('[data-tap-indicator]')
+const tapCounter = requireElement<HTMLElement>('[data-tap-counter]')
 const messageEyebrow = requireElement<HTMLElement>('[data-message-eyebrow]')
 const messageTitle = requireElement<HTMLElement>('[data-message-title]')
 const messageBody = requireElement<HTMLElement>('[data-message-body]')
@@ -93,6 +96,7 @@ messageBody.textContent = appConfig.message.body
 if (previewLabel) {
   previewLabel.textContent = appConfig.ui.previewLabel
 }
+updateTapCounter()
 
 context.imageSmoothingEnabled = true
 
@@ -101,6 +105,7 @@ trigger.addEventListener('click', () => {
     return
   }
 
+  registerTap()
   state.isScrubbing = false
   triggerTapFeedback()
   playFullCycle()
@@ -339,8 +344,29 @@ function stopTimer() {
   }
 }
 
-function triggerTapFeedback() {
+function registerTap() {
   state.tapCount += 1
+  updateTapCounter()
+  resetTapInactivityTimer()
+}
+
+function updateTapCounter() {
+  tapCounter.textContent = `${appConfig.ui.tapCounterPrefix} ${state.tapCount}`
+}
+
+function resetTapInactivityTimer() {
+  if (state.tapResetTimerId !== null) {
+    window.clearTimeout(state.tapResetTimerId)
+  }
+
+  state.tapResetTimerId = window.setTimeout(() => {
+    state.tapCount = 0
+    state.tapResetTimerId = null
+    updateTapCounter()
+  }, animationConfig.tapResetDelayMs)
+}
+
+function triggerTapFeedback() {
   state.isAnimatingTap = true
 
   if (state.reducedMotion) {
@@ -463,4 +489,8 @@ function animateShell() {
 
 window.addEventListener('beforeunload', () => {
   stopTimer()
+  if (state.tapResetTimerId !== null) {
+    window.clearTimeout(state.tapResetTimerId)
+    state.tapResetTimerId = null
+  }
 })
