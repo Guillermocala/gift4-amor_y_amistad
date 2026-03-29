@@ -93,6 +93,10 @@ button {
   padding: 0;
   background: transparent;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .character-frame {
@@ -220,6 +224,10 @@ button {
 .character-trigger:focus-visible,
 .character-trigger:hover {
   outline: none;
+}
+
+.character-trigger::-moz-focus-inner {
+  border: 0;
 }
 
 .character-trigger:focus-visible .character-frame {

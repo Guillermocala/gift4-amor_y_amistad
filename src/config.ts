@@ -9,8 +9,8 @@ export const appConfig = {
   },
   message: {
     eyebrow: 'Para mi morena hermosa',
-    title: 'Un mensaje que acompana al personaje',
-    body: 'Este espacio queda listo para escribir una dedicatoria corta, un texto romantico o cualquier detalle personal que quieras mostrar junto al gatito.',
+    title: 'Eres mi casualidad favorita',
+    body: 'Cada día contigo se siente como un regalo que no quiero dejar de abrir. Por ello, te dedico esta tarjetita con mucho amor, con invitación a reclamar la cantidad de besos que diga el contador',
   },
 }
 
