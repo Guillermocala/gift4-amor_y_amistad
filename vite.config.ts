@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/Gift-2/',
+  base: '/Gift3/',
 })
