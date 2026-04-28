@@ -5,12 +5,8 @@ import appTemplate from './app.template.html?raw'
 import { animationConfig, appConfig } from './config'
 
 interface AppState {
-  tapCount: number
   isAnimatingTap: boolean
-  isPlayingFullCycle: boolean
   isScrubbing: boolean
-  hasWrappedToStart: boolean
-  tapResetTimerId: number | null
   reducedMotion: boolean
 }
 
@@ -21,8 +17,6 @@ interface RenderedGifFrame {
 
 interface GifPlayer {
   frames: RenderedGifFrame[]
-  loopStartIndex: number
-  loopEndIndex: number
   currentFrame: number
   timerId: number | null
   width: number
@@ -30,19 +24,13 @@ interface GifPlayer {
 }
 
 const state: AppState = {
-  tapCount: 0,
   isAnimatingTap: false,
-  isPlayingFullCycle: false,
   isScrubbing: false,
-  hasWrappedToStart: false,
-  tapResetTimerId: null,
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 }
 
 const player: GifPlayer = {
   frames: [],
-  loopStartIndex: 0,
-  loopEndIndex: 0,
   currentFrame: 0,
   timerId: null,
   width: 0,
@@ -73,8 +61,6 @@ const characterFrame = requireElement<HTMLElement>('[data-character-frame]')
 const characterGlow = requireElement<HTMLElement>('[data-character-glow]')
 const messageCard = requireElement<HTMLElement>('.message-card')
 const canvas = requireElement<HTMLCanvasElement>('[data-gif-canvas]')
-const tapIndicator = requireElement<HTMLElement>('[data-tap-indicator]')
-const tapCounter = requireElement<HTMLElement>('[data-tap-counter]')
 const messageEyebrow = requireElement<HTMLElement>('[data-message-eyebrow]')
 const messageTitle = requireElement<HTMLElement>('[data-message-title]')
 const messageBody = requireElement<HTMLElement>('[data-message-body]')
@@ -89,14 +75,12 @@ if (!canvasContext) {
 
 const context = canvasContext
 
-tapIndicator.textContent = appConfig.ui.tapIndicator
 messageEyebrow.textContent = appConfig.message.eyebrow
 messageTitle.textContent = appConfig.message.title
 messageBody.textContent = appConfig.message.body
 if (previewLabel) {
   previewLabel.textContent = appConfig.ui.previewLabel
 }
-updateTapCounter()
 
 context.imageSmoothingEnabled = true
 
@@ -105,10 +89,11 @@ trigger.addEventListener('click', () => {
     return
   }
 
-  registerTap()
   state.isScrubbing = false
   triggerTapFeedback()
-  playFullCycle()
+  if (player.timerId === null) {
+    scheduleNextFrame()
+  }
 })
 
 reviewSlider?.addEventListener('pointerdown', () => {
@@ -158,20 +143,18 @@ async function loadGif() {
   player.width = parsedGif.lsd.width
   player.height = parsedGif.lsd.height
   player.frames = buildRenderedFrames(decompressedFrames, player.width, player.height)
-  const loopWindow = getLoopWindow(player.frames.length)
-  player.loopStartIndex = loopWindow.start
-  player.loopEndIndex = loopWindow.end
 
   canvas.width = player.width
   canvas.height = player.height
   canvas.style.aspectRatio = `${player.width} / ${player.height}`
   if (reviewSlider) {
     reviewSlider.max = String(Math.max(0, player.frames.length - 1))
-    reviewSlider.value = String(player.loopStartIndex)
+    reviewSlider.value = '0'
   }
 
-  renderFrame(player.loopStartIndex)
-  startIntroLoop()
+  player.currentFrame = 0
+  renderFrame(player.currentFrame)
+  startGifLoop()
 }
 
 function buildRenderedFrames(frames: ParsedFrame[], width: number, height: number) {
@@ -230,33 +213,14 @@ function buildRenderedFrames(frames: ParsedFrame[], width: number, height: numbe
   return renderedFrames
 }
 
-function getLoopWindow(frameCount: number) {
-  const start = Math.min(Math.max(animationConfig.loopStartFrame - 1, 0), Math.max(frameCount - 1, 0))
-  const end = Math.min(Math.max(animationConfig.loopEndFrame - 1, start), Math.max(frameCount - 1, 0))
-
-  return { start, end }
-}
-
-function startIntroLoop() {
+function startGifLoop() {
   stopTimer()
-  state.isPlayingFullCycle = false
   state.isScrubbing = false
-  state.hasWrappedToStart = false
-  player.currentFrame = player.loopStartIndex
   renderFrame(player.currentFrame)
-  scheduleNextFrame('intro')
+  scheduleNextFrame()
 }
 
-function playFullCycle() {
-  stopTimer()
-  state.isPlayingFullCycle = true
-  state.hasWrappedToStart = false
-  player.currentFrame = player.loopEndIndex
-  renderFrame(player.currentFrame)
-  scheduleNextFrame('full')
-}
-
-function scheduleNextFrame(mode: 'intro' | 'full') {
+function scheduleNextFrame() {
   if (state.isScrubbing) {
     return
   }
@@ -265,51 +229,18 @@ function scheduleNextFrame(mode: 'intro' | 'full') {
   const delay = current?.delay ?? 100
 
   player.timerId = window.setTimeout(() => {
-    advanceFrame(mode)
+    advanceFrame()
   }, delay)
 }
 
-function advanceFrame(mode: 'intro' | 'full') {
+function advanceFrame() {
   if (!player.frames.length) {
     return
   }
 
-  if (mode === 'intro') {
-    player.currentFrame =
-      player.currentFrame >= player.loopEndIndex ? player.loopStartIndex : player.currentFrame + 1
-    renderFrame(player.currentFrame)
-    scheduleNextFrame('intro')
-    return
-  }
-
-  if (!state.hasWrappedToStart && player.currentFrame >= player.frames.length - 1) {
-    state.hasWrappedToStart = true
-    player.currentFrame = 0
-    renderFrame(player.currentFrame)
-
-    if (player.loopStartIndex === 0) {
-      startIntroLoop()
-      return
-    }
-
-    scheduleNextFrame('full')
-    return
-  }
-
-  if (state.hasWrappedToStart && player.currentFrame >= player.loopStartIndex) {
-    startIntroLoop()
-    return
-  }
-
-  player.currentFrame += 1
+  player.currentFrame = (player.currentFrame + 1) % player.frames.length
   renderFrame(player.currentFrame)
-
-  if (state.hasWrappedToStart && player.currentFrame >= player.loopStartIndex) {
-    startIntroLoop()
-    return
-  }
-
-  scheduleNextFrame('full')
+  scheduleNextFrame()
 }
 
 function renderFrame(index: number) {
@@ -342,28 +273,6 @@ function stopTimer() {
     window.clearTimeout(player.timerId)
     player.timerId = null
   }
-}
-
-function registerTap() {
-  state.tapCount += 1
-  updateTapCounter()
-  resetTapInactivityTimer()
-}
-
-function updateTapCounter() {
-  tapCounter.textContent = `${appConfig.ui.tapCounterPrefix} ${state.tapCount}`
-}
-
-function resetTapInactivityTimer() {
-  if (state.tapResetTimerId !== null) {
-    window.clearTimeout(state.tapResetTimerId)
-  }
-
-  state.tapResetTimerId = window.setTimeout(() => {
-    state.tapCount = 0
-    state.tapResetTimerId = null
-    updateTapCounter()
-  }, animationConfig.tapResetDelayMs)
 }
 
 function triggerTapFeedback() {
@@ -489,8 +398,4 @@ function animateShell() {
 
 window.addEventListener('beforeunload', () => {
   stopTimer()
-  if (state.tapResetTimerId !== null) {
-    window.clearTimeout(state.tapResetTimerId)
-    state.tapResetTimerId = null
-  }
 })

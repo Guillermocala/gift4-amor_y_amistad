@@ -1,12 +1,14 @@
 :root {
-  --stage-bg: linear-gradient(180deg, #fff6f1 0%, #f4d5cd 100%);
-  --orb-a: rgba(255, 235, 214, 0.96);
-  --orb-b: rgba(234, 138, 149, 0.42);
-  --surface: rgba(255, 249, 244, 0.7);
-  --surface-border: rgba(126, 77, 95, 0.14);
-  --text-main: #553342;
-  --text-soft: #7d5d6a;
-  --accent: #c8647d;
+  --stage-bg: linear-gradient(180deg, #fff7ec 0%, #ffd6bf 100%);
+  --orb-a: rgba(255, 209, 102, 0.72);
+  --orb-b: rgba(255, 107, 87, 0.38);
+  --surface: rgba(255, 252, 246, 0.78);
+  --surface-border: rgba(36, 59, 107, 0.16);
+  --text-main: #38233a;
+  --text-soft: #5d4c6a;
+  --accent: #ff6b57;
+  --accent-secondary: #ffd166;
+  --ink-blue: #243b6b;
   font-family: 'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif;
   color: var(--text-main);
   font-synthesis: none;
@@ -26,7 +28,7 @@ body {
 
 body {
   margin: 0;
-  background: #120f16;
+  background: #1b1724;
 }
 
 button,
@@ -104,51 +106,12 @@ button {
   width: 100%;
   padding: 18px;
   border-radius: 36px;
-  background: linear-gradient(180deg, rgba(255, 252, 249, 0.7), rgba(255, 244, 237, 0.3));
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.82), rgba(255, 229, 211, 0.34)),
+    radial-gradient(circle at 20% 12%, rgba(255, 209, 102, 0.3), transparent 32%);
   box-shadow:
-    0 30px 70px rgba(98, 45, 62, 0.12),
+    0 30px 70px rgba(36, 59, 107, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.tap-indicator {
-  position: absolute;
-  top: -14px;
-  right: -10px;
-  z-index: 2;
-  display: inline-grid;
-  place-items: center;
-  min-width: 66px;
-  min-height: 66px;
-  padding: 8px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(200, 100, 125, 0.95), rgba(245, 176, 174, 0.95));
-  color: #fff8f4;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  transform: rotate(25deg);
-  box-shadow: 0 14px 28px rgba(98, 45, 62, 0.18);
-}
-
-.tap-counter {
-  position: absolute;
-  top: -14px;
-  left: -10px;
-  z-index: 2;
-  display: inline-grid;
-  place-items: center;
-  min-width: 66px;
-  min-height: 66px;
-  padding: 8px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 248, 244, 0.96), rgba(244, 212, 202, 0.96));
-  color: var(--text-main);
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  transform: rotate(-18deg);
-  box-shadow: 0 14px 28px rgba(98, 45, 62, 0.16);
 }
 
 .character-frame.is-error::after {
@@ -170,7 +133,7 @@ button {
   position: absolute;
   inset: 10%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 225, 185, 0.7) 0%, rgba(255, 225, 185, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 209, 102, 0.76) 0%, rgba(255, 209, 102, 0) 70%);
   opacity: 0;
   transform: scale(0.84);
 }
@@ -183,7 +146,7 @@ button {
   background: var(--surface);
   backdrop-filter: blur(12px);
   text-align: center;
-  box-shadow: 0 22px 60px rgba(98, 45, 62, 0.08);
+  box-shadow: 0 22px 60px rgba(36, 59, 107, 0.1);
 }
 
 .message-eyebrow {
@@ -199,7 +162,8 @@ button {
   font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
   font-size: clamp(1.8rem, 5vw, 2.7rem);
   line-height: 1.02;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
+  color: var(--ink-blue);
 }
 
 .message-body {
@@ -252,8 +216,9 @@ button {
 
 .character-trigger:focus-visible .character-frame {
   box-shadow:
-    0 30px 70px rgba(98, 45, 62, 0.12),
-    0 0 0 2px rgba(200, 100, 125, 0.32);
+    0 30px 70px rgba(36, 59, 107, 0.14),
+    0 0 0 2px rgba(255, 107, 87, 0.34),
+    0 0 0 6px rgba(255, 209, 102, 0.2);
 }
 
 @media (min-width: 768px) {
