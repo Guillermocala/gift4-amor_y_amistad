@@ -1,15 +1,19 @@
 :root {
-  --stage-bg: linear-gradient(180deg, #fff7ec 0%, #ffd6bf 100%);
-  --orb-a: rgba(255, 209, 102, 0.72);
-  --orb-b: rgba(255, 107, 87, 0.38);
-  --surface: rgba(255, 252, 246, 0.78);
-  --surface-border: rgba(36, 59, 107, 0.16);
-  --text-main: #38233a;
-  --text-soft: #5d4c6a;
-  --accent: #ff6b57;
-  --accent-secondary: #ffd166;
-  --ink-blue: #243b6b;
-  font-family: 'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif;
+  --stage-bg: linear-gradient(180deg, #fff5f7 0%, #ffdfe7 55%, #ffc6d4 100%);
+  --orb-a: rgba(255, 143, 171, 0.55);
+  --orb-b: rgba(214, 51, 108, 0.26);
+  --surface: rgba(255, 250, 252, 0.84);
+  --surface-border: rgba(170, 39, 79, 0.16);
+  --text-main: #4a1526;
+  --text-soft: #7c4256;
+  --accent: #e03a63;
+  --accent-deep: #b3164a;
+  --accent-soft: #ffb3c6;
+  --ink-deep: #7a0f33;
+  --shadow-rose: rgba(140, 24, 57, 0.16);
+  --shadow-rose-strong: rgba(140, 24, 57, 0.26);
+  --handle-w: 38px;
+  font-family: 'Quicksand', 'Trebuchet MS', 'Segoe UI', sans-serif;
   color: var(--text-main);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -28,7 +32,7 @@ body {
 
 body {
   margin: 0;
-  background: #1b1724;
+  background: #2a0d18;
 }
 
 button,
@@ -86,7 +90,8 @@ button {
   align-content: center;
   justify-items: center;
   gap: 24px;
-  padding: 32px 20px 40px;
+  padding: calc(32px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
+    calc(40px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
 }
 
 .character-trigger {
@@ -107,11 +112,11 @@ button {
   padding: 18px;
   border-radius: 36px;
   background:
-    linear-gradient(180deg, rgba(255, 252, 246, 0.82), rgba(255, 229, 211, 0.34)),
-    radial-gradient(circle at 20% 12%, rgba(255, 209, 102, 0.3), transparent 32%);
+    linear-gradient(180deg, rgba(255, 250, 252, 0.86), rgba(255, 214, 226, 0.38)),
+    radial-gradient(circle at 20% 12%, rgba(255, 179, 198, 0.42), transparent 34%);
   box-shadow:
-    0 30px 70px rgba(36, 59, 107, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 30px 70px var(--shadow-rose),
+    inset 0 1px 0 rgba(255, 255, 255, 0.66);
 }
 
 .character-frame.is-error::after {
@@ -133,76 +138,9 @@ button {
   position: absolute;
   inset: 10%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 209, 102, 0.76) 0%, rgba(255, 209, 102, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 179, 198, 0.82) 0%, rgba(255, 179, 198, 0) 70%);
   opacity: 0;
   transform: scale(0.84);
-}
-
-.message-card {
-  width: min(100%, 540px);
-  padding: 22px 20px;
-  border: 1px solid var(--surface-border);
-  border-radius: 28px;
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  text-align: center;
-  box-shadow: 0 22px 60px rgba(36, 59, 107, 0.1);
-}
-
-.message-eyebrow {
-  margin: 0;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--accent);
-}
-
-.message-title {
-  margin: 10px 0 0;
-  font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-  font-size: clamp(1.8rem, 5vw, 2.7rem);
-  line-height: 1.02;
-  letter-spacing: 0;
-  color: var(--ink-blue);
-}
-
-.message-body {
-  margin: 14px 0 0;
-  color: var(--text-soft);
-  line-height: 1.6;
-}
-
-.gif-review {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(126, 77, 95, 0.1);
-}
-
-.gif-review__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 0.85rem;
-}
-
-.gif-review__label {
-  color: var(--accent);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.gif-review__stats {
-  color: var(--text-soft);
-}
-
-.gif-review__slider {
-  width: 100%;
-  accent-color: var(--accent);
-  cursor: ew-resize;
 }
 
 .character-trigger:focus-visible,
@@ -216,22 +154,200 @@ button {
 
 .character-trigger:focus-visible .character-frame {
   box-shadow:
-    0 30px 70px rgba(36, 59, 107, 0.14),
-    0 0 0 2px rgba(255, 107, 87, 0.34),
-    0 0 0 6px rgba(255, 209, 102, 0.2);
+    0 30px 70px var(--shadow-rose),
+    0 0 0 2px rgba(224, 58, 99, 0.38),
+    0 0 0 6px rgba(255, 179, 198, 0.34);
+}
+
+/* --- Cinta de regalo (esquina superior derecha) --- */
+
+.ribbon {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  right: env(safe-area-inset-right);
+  z-index: 6;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+}
+
+/* La banda queda centrada en (70, 70) del contenedor, de modo que sus cuatro esquinas
+   siguen dentro de la caja tras rotar 45 grados y la cinta se ve entera. */
+.ribbon__band {
+  position: absolute;
+  top: 54px;
+  left: -5px;
+  width: 150px;
+  padding: 8px 0;
+  border: 0;
+  background: linear-gradient(135deg, #ff6b88, #d81e5b);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(122, 15, 51, 0.5);
+  transform: rotate(45deg);
+  transform-origin: center;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* Muescas en V en las dos puntas. En porcentajes, asi que se adaptan solas si cambia
+     el tamano o el texto. */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 13px) 50%, 100% 100%, 0 100%, 13px 50%);
+  /* drop-shadow y no box-shadow: clip-path recorta todo el renderizado del elemento,
+     sombra incluida, mientras que el filtro se aplica despues del recorte y sigue la
+     silueta con las muescas. */
+  filter: drop-shadow(0 6px 14px rgba(140, 24, 57, 0.34));
+}
+
+.ribbon__band:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -5px;
+}
+
+/* --- Capa de corazones --- */
+
+.hearts-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.heart {
+  position: absolute;
+  /* width/height/bottom los fija el emisor por particula. */
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* --- Velo y panel del mensaje --- */
+
+.stage-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  background: rgba(74, 21, 38, 0.44);
+  opacity: 0;
+}
+
+.stage-scrim[hidden] {
+  display: none;
+}
+
+.message-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: stretch;
+  width: calc(var(--handle-w) + min(88vw, 420px));
+  height: 100svh;
+  /* pan-y deja el scroll vertical al panel y libera el gesto horizontal para el arrastre. */
+  touch-action: pan-y;
+}
+
+.drawer-handle {
+  flex: 0 0 var(--handle-w);
+  align-self: center;
+  display: grid;
+  place-items: center;
+  /* 260px es lo que necesita el rotulo vertical completo. */
+  height: 260px;
+  margin-right: -1px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px 0 0 18px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: -8px 0 22px var(--shadow-rose-strong);
+}
+
+.drawer-handle__label {
+  writing-mode: vertical-rl;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.drawer-handle:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -5px;
+}
+
+.message-panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: calc(32px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+    calc(32px + env(safe-area-inset-bottom)) 24px;
+  border-left: 1px solid var(--surface-border);
+  background: linear-gradient(160deg, #fff7f9, #ffe4ec);
+  box-shadow: -18px 0 50px var(--shadow-rose);
+  text-align: center;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* margin auto en vez de justify-content: center, para que un mensaje largo
+   no quede recortado por arriba al desbordar. */
+.message-panel__inner {
+  margin-block: auto;
+}
+
+.message-eyebrow {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.message-title {
+  margin: 10px 0 0;
+  font-family: 'Dancing Script', 'Segoe Script', cursive;
+  /* Las caligraficas tienen altura de x pequena: necesitan mas cuerpo que una serif,
+     y line-height holgado para que los trazos de un renglon no toquen el siguiente. */
+  font-size: clamp(2.6rem, 8vw, 3.8rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0;
+  color: var(--ink-deep);
+}
+
+.message-body {
+  margin: 14px 0 0;
+  color: var(--text-soft);
+  line-height: 1.6;
 }
 
 @media (min-width: 768px) {
   .experience-shell {
     gap: 28px;
-    padding: 40px 24px 48px;
+    padding-top: calc(40px + env(safe-area-inset-top));
+    padding-bottom: calc(48px + env(safe-area-inset-bottom));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .experience-shell,
   .character-frame,
-  .ambient {
+  .ambient,
+  .message-drawer,
+  .stage-scrim,
+  .hearts-layer {
     transition: none;
   }
 }

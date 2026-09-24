@@ -2,11 +2,14 @@ import './style.css'
 import { gsap } from 'gsap'
 import { decompressFrames, parseGIF, type ParsedFrame } from 'gifuct-js'
 import appTemplate from './app.template.html?raw'
-import { animationConfig, appConfig } from './config'
+import { animationConfig, appConfig, audioConfig, heartsConfig, shakeConfig } from './config'
+import { createShakeDetector } from './shake'
+import { createHeartsEmitter } from './hearts'
+import { createAmbientAudio } from './ambient-audio'
 
 interface AppState {
   isAnimatingTap: boolean
-  isScrubbing: boolean
+  isDrawerOpen: boolean
   reducedMotion: boolean
 }
 
@@ -25,7 +28,7 @@ interface GifPlayer {
 
 const state: AppState = {
   isAnimatingTap: false,
-  isScrubbing: false,
+  isDrawerOpen: false,
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 }
 
@@ -57,16 +60,21 @@ function requireElement<T extends Element>(selector: string) {
 }
 
 const trigger = requireElement<HTMLButtonElement>('[data-trigger]')
+const shell = requireElement<HTMLElement>('[data-shell]')
 const characterFrame = requireElement<HTMLElement>('[data-character-frame]')
 const characterGlow = requireElement<HTMLElement>('[data-character-glow]')
-const messageCard = requireElement<HTMLElement>('.message-card')
 const canvas = requireElement<HTMLCanvasElement>('[data-gif-canvas]')
 const messageEyebrow = requireElement<HTMLElement>('[data-message-eyebrow]')
 const messageTitle = requireElement<HTMLElement>('[data-message-title]')
 const messageBody = requireElement<HTMLElement>('[data-message-body]')
-const previewLabel = appRoot.querySelector<HTMLElement>('[data-preview-label]')
-const reviewSlider = appRoot.querySelector<HTMLInputElement>('[data-review-slider]')
-const reviewStats = appRoot.querySelector<HTMLElement>('[data-review-stats]')
+const scrim = requireElement<HTMLElement>('[data-scrim]')
+const drawer = requireElement<HTMLElement>('[data-drawer]')
+const drawerToggle = requireElement<HTMLButtonElement>('[data-drawer-toggle]')
+const drawerLabel = requireElement<HTMLElement>('[data-drawer-label]')
+const panel = requireElement<HTMLElement>('[data-panel]')
+const heartsLayer = requireElement<HTMLElement>('[data-hearts-layer]')
+const shakeHint = requireElement<HTMLButtonElement>('[data-shake-hint]')
+const shakeHintLabel = requireElement<HTMLElement>('[data-shake-hint-label]')
 const canvasContext = canvas.getContext('2d')
 
 if (!canvasContext) {
@@ -78,43 +86,39 @@ const context = canvasContext
 messageEyebrow.textContent = appConfig.message.eyebrow
 messageTitle.textContent = appConfig.message.title
 messageBody.textContent = appConfig.message.body
-if (previewLabel) {
-  previewLabel.textContent = appConfig.ui.previewLabel
-}
+drawerLabel.textContent = appConfig.ui.drawerLabel
+drawerToggle.setAttribute('aria-label', appConfig.ui.drawerOpenLabel)
 
 context.imageSmoothingEnabled = true
+
+const emitter = createHeartsEmitter(heartsLayer, heartsConfig, {
+  reducedMotion: state.reducedMotion,
+})
+
+const ambientAudio = createAmbientAudio(audioConfig)
+
+const shakeDetector = createShakeDetector({
+  threshold: shakeConfig.threshold,
+  sampleIntervalMs: shakeConfig.sampleIntervalMs,
+  cooldownMs: shakeConfig.cooldownMs,
+  onShake: () => {
+    emitter.startBurst()
+  },
+})
 
 trigger.addEventListener('click', () => {
   if (!player.frames.length) {
     return
   }
 
-  state.isScrubbing = false
   triggerTapFeedback()
   if (player.timerId === null) {
     scheduleNextFrame()
   }
 })
 
-reviewSlider?.addEventListener('pointerdown', () => {
-  state.isScrubbing = true
-  stopTimer()
-})
-
-reviewSlider?.addEventListener('input', () => {
-  if (!player.frames.length || !reviewSlider) {
-    return
-  }
-
-  state.isScrubbing = true
-  stopTimer()
-  player.currentFrame = Number(reviewSlider.value)
-  renderFrame(player.currentFrame)
-})
-
-reviewSlider?.addEventListener('change', () => {
-  state.isScrubbing = true
-})
+setupDrawer()
+setupShake()
 
 boot().catch(() => {
   characterFrame.classList.add('is-error')
@@ -122,6 +126,7 @@ boot().catch(() => {
 
 function boot() {
   animateShell()
+  void ambientAudio.start()
   return loadGif()
 }
 
@@ -147,10 +152,6 @@ async function loadGif() {
   canvas.width = player.width
   canvas.height = player.height
   canvas.style.aspectRatio = `${player.width} / ${player.height}`
-  if (reviewSlider) {
-    reviewSlider.max = String(Math.max(0, player.frames.length - 1))
-    reviewSlider.value = '0'
-  }
 
   player.currentFrame = 0
   renderFrame(player.currentFrame)
@@ -215,16 +216,11 @@ function buildRenderedFrames(frames: ParsedFrame[], width: number, height: numbe
 
 function startGifLoop() {
   stopTimer()
-  state.isScrubbing = false
   renderFrame(player.currentFrame)
   scheduleNextFrame()
 }
 
 function scheduleNextFrame() {
-  if (state.isScrubbing) {
-    return
-  }
-
   const current = player.frames[player.currentFrame]
   const delay = current?.delay ?? 100
 
@@ -252,20 +248,6 @@ function renderFrame(index: number) {
 
   context.clearRect(0, 0, player.width, player.height)
   context.drawImage(frame.canvas, 0, 0)
-  if (reviewSlider) {
-    reviewSlider.value = String(index)
-  }
-  if (reviewStats) {
-    reviewStats.textContent = buildReviewStats(index)
-  }
-}
-
-function buildReviewStats(index: number) {
-  const elapsedMs = player.frames
-    .slice(0, index + 1)
-    .reduce((total, frame) => total + frame.delay, 0)
-
-  return `Frame ${index + 1} - ${elapsedMs} ms`
 }
 
 function stopTimer() {
@@ -273,6 +255,211 @@ function stopTimer() {
     window.clearTimeout(player.timerId)
     player.timerId = null
   }
+}
+
+function setupShake() {
+  let isArmed = false
+  let needsPermission = shakeDetector.isSupported
+
+  shakeHint.setAttribute('aria-label', appConfig.ui.shakeHintLabel)
+  shakeHintLabel.textContent = needsPermission ? appConfig.ui.shakeHint : appConfig.ui.shakeHintTap
+
+  const pulse = state.reducedMotion
+    ? null
+    : gsap.fromTo(
+        shakeHint,
+        { scale: 1, rotate: 45 },
+        {
+          scale: 1.05,
+          rotate: 45,
+          duration: 0.9,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut',
+        }
+      )
+
+  shakeHint.addEventListener('click', () => {
+    if (!needsPermission || isArmed) {
+      // Sin sensor (o ya armado) el tap dispara la rafaga directamente.
+      emitter.startBurst()
+      return
+    }
+
+    void shakeDetector.requestAccess().then((access) => {
+      if (access === 'granted') {
+        isArmed = true
+        shakeHintLabel.textContent = appConfig.ui.shakeHintArmed
+        pulse?.kill()
+        gsap.set(shakeHint, { scale: 1, rotate: 45 })
+        emitter.startBurst()
+        return
+      }
+
+      // Permiso negado o sensor ausente: la cinta pasa a ser el disparador.
+      needsPermission = false
+      shakeHintLabel.textContent = appConfig.ui.shakeHintTap
+      emitter.startBurst()
+    })
+  })
+}
+
+function setupDrawer() {
+  let closedX = 0
+  let isDragging = false
+  let dragEngaged = false
+  let pointerId: number | null = null
+  let startX = 0
+  let startY = 0
+  let startTranslate = 0
+
+  measureDrawer()
+  gsap.set(drawer, { x: closedX })
+
+  function measureDrawer() {
+    closedX = panel.getBoundingClientRect().width
+  }
+
+  function currentTranslate() {
+    return Number(gsap.getProperty(drawer, 'x'))
+  }
+
+  function setDrawerOpen(open: boolean) {
+    state.isDrawerOpen = open
+    const duration = state.reducedMotion ? 0 : animationConfig.drawerDuration
+
+    drawerToggle.setAttribute('aria-expanded', String(open))
+    drawerToggle.setAttribute(
+      'aria-label',
+      open ? appConfig.ui.drawerCloseLabel : appConfig.ui.drawerOpenLabel
+    )
+
+    if (open) {
+      scrim.hidden = false
+      shell.setAttribute('inert', '')
+      shell.setAttribute('aria-hidden', 'true')
+    } else {
+      shell.removeAttribute('inert')
+      shell.removeAttribute('aria-hidden')
+    }
+
+    gsap
+      .timeline({
+        onComplete: () => {
+          if (!open) {
+            scrim.hidden = true
+          }
+        },
+      })
+      .to(drawer, { x: open ? 0 : closedX, duration, ease: 'power3.out' }, 0)
+      .to(scrim, { opacity: open ? 1 : 0, duration }, 0)
+      // El contenido principal se atenua y se encoge: es lo que lo oculta tras el panel.
+      .to(shell, { scale: open ? 0.96 : 1, opacity: open ? 0.35 : 1, duration }, 0)
+      // Los corazones siguen subiendo por delante del panel, solo atenuados para no
+      // estorbar la lectura del mensaje.
+      .to(heartsLayer, { opacity: open ? 0.4 : 1, duration }, 0)
+  }
+
+  drawerToggle.addEventListener('click', () => {
+    if (dragEngaged) {
+      return
+    }
+
+    setDrawerOpen(!state.isDrawerOpen)
+  })
+
+  scrim.addEventListener('click', () => {
+    setDrawerOpen(false)
+  })
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.isDrawerOpen) {
+      setDrawerOpen(false)
+    }
+  })
+
+  drawer.addEventListener('pointerdown', (event) => {
+    if (pointerId !== null) {
+      return
+    }
+
+    pointerId = event.pointerId
+    isDragging = true
+    dragEngaged = false
+    startX = event.clientX
+    startY = event.clientY
+    startTranslate = currentTranslate()
+  })
+
+  drawer.addEventListener('pointermove', (event) => {
+    if (!isDragging || event.pointerId !== pointerId) {
+      return
+    }
+
+    const deltaX = event.clientX - startX
+    const deltaY = event.clientY - startY
+
+    // Solo se toma el gesto como arrastre si es claramente horizontal, para no
+    // robarle el scroll vertical al panel.
+    if (!dragEngaged) {
+      if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) {
+        return
+      }
+
+      dragEngaged = true
+      drawer.setPointerCapture(event.pointerId)
+    }
+
+    const next = Math.min(closedX, Math.max(0, startTranslate + deltaX))
+    const progress = closedX === 0 ? 1 : 1 - next / closedX
+
+    scrim.hidden = false
+    gsap.set(drawer, { x: next })
+    gsap.set(scrim, { opacity: progress })
+    gsap.set(shell, { scale: 1 - 0.04 * progress, opacity: 1 - 0.65 * progress })
+    gsap.set(heartsLayer, { opacity: 1 - 0.6 * progress })
+  })
+
+  function endDrag(event: PointerEvent) {
+    if (!isDragging || event.pointerId !== pointerId) {
+      return
+    }
+
+    isDragging = false
+    pointerId = null
+
+    if (drawer.hasPointerCapture(event.pointerId)) {
+      drawer.releasePointerCapture(event.pointerId)
+    }
+
+    if (!dragEngaged) {
+      return
+    }
+
+    const travelled = event.clientX - startX
+    const position = currentTranslate()
+    const shouldOpen = Math.abs(travelled) > 60 ? travelled < 0 : position < closedX / 2
+
+    setDrawerOpen(shouldOpen)
+    // Se libera en el siguiente tick para que el click sintetizado tras el arrastre
+    // no vuelva a alternar el panel.
+    window.setTimeout(() => {
+      dragEngaged = false
+    }, 0)
+  }
+
+  drawer.addEventListener('pointerup', endDrag)
+  drawer.addEventListener('pointercancel', endDrag)
+
+  function remeasure() {
+    measureDrawer()
+    gsap.set(drawer, { x: state.isDrawerOpen ? 0 : closedX })
+  }
+
+  window.addEventListener('resize', remeasure)
+  // El primer measure corre antes de que el layout se estabilice en algunos casos
+  // (fuentes, barra de Safari), asi que se repite al terminar de cargar.
+  window.addEventListener('load', remeasure)
 }
 
 function triggerTapFeedback() {
@@ -286,7 +473,7 @@ function triggerTapFeedback() {
         },
       })
       .fromTo(
-        [characterFrame, messageCard],
+        characterFrame,
         { scale: 1 },
         {
           scale: 1.02,
@@ -314,17 +501,6 @@ function triggerTapFeedback() {
         ease: 'power2.out',
       }
     )
-    .fromTo(
-      messageCard,
-      { scale: 1, y: 0 },
-      {
-        scale: 1.02,
-        y: -4,
-        duration: animationConfig.tapDuration,
-        ease: 'power2.out',
-      },
-      0
-    )
     .to(
       characterFrame,
       {
@@ -334,16 +510,6 @@ function triggerTapFeedback() {
         ease: 'elastic.out(1, 0.55)',
       },
       '>-0.02'
-    )
-    .to(
-      messageCard,
-      {
-        scale: 1,
-        y: 0,
-        duration: animationConfig.tapDuration + 0.08,
-        ease: 'elastic.out(1, 0.55)',
-      },
-      '<'
     )
     .fromTo(
       characterGlow,
@@ -396,6 +562,10 @@ function animateShell() {
   })
 }
 
-window.addEventListener('beforeunload', () => {
+// Safari en iOS no dispara beforeunload de forma fiable.
+window.addEventListener('pagehide', () => {
   stopTimer()
+  shakeDetector.stop()
+  emitter.stop()
+  ambientAudio.stop()
 })

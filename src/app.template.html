@@ -1,7 +1,7 @@
 <main class="single-stage">
   <div class="ambient ambient--left" aria-hidden="true"></div>
   <div class="ambient ambient--right" aria-hidden="true"></div>
-  <section class="experience-shell">
+  <section class="experience-shell" data-shell>
     <button
       class="character-trigger"
       type="button"
@@ -13,28 +13,30 @@
         <span class="character-glow" data-character-glow aria-hidden="true"></span>
       </div>
     </button>
-    <section class="message-card" aria-label="Mensaje principal">
-      <p class="message-eyebrow" data-message-eyebrow></p>
-      <h1 class="message-title" data-message-title></h1>
-      <p class="message-body" data-message-body></p>
-      <!--
-      <div class="gif-review">
-        <div class="gif-review__meta">
-          <span class="gif-review__label" data-preview-label></span>
-          <span class="gif-review__stats" data-review-stats>Frame 1 - 0 ms</span>
-        </div>
-        <input
-          class="gif-review__slider"
-          data-review-slider
-          type="range"
-          min="0"
-          max="0"
-          step="1"
-          value="0"
-          aria-label="Revisar frames del GIF"
-        />
-      </div>
-      -->
-    </section>
   </section>
+  <div class="stage-scrim" data-scrim hidden></div>
+  <aside class="message-drawer" data-drawer>
+    <button
+      class="drawer-handle"
+      type="button"
+      data-drawer-toggle
+      aria-expanded="false"
+      aria-controls="message-panel"
+    >
+      <span class="drawer-handle__label" data-drawer-label></span>
+    </button>
+    <div class="message-panel" id="message-panel" data-panel>
+      <div class="message-panel__inner">
+        <p class="message-eyebrow" data-message-eyebrow></p>
+        <h1 class="message-title" data-message-title></h1>
+        <p class="message-body" data-message-body></p>
+      </div>
+    </div>
+  </aside>
+  <div class="hearts-layer" data-hearts-layer aria-hidden="true"></div>
+  <div class="ribbon">
+    <button class="ribbon__band" type="button" data-shake-hint>
+      <span data-shake-hint-label></span>
+    </button>
+  </div>
 </main>
