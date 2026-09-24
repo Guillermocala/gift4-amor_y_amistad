@@ -101,7 +101,8 @@ const ambientAudio = createAmbientAudio(audioConfig)
 const diagnostics = { lastDelta: 0, maxDelta: 0, burstCount: 0 }
 
 const shakeDetector = createShakeDetector({
-  threshold: shakeConfig.threshold,
+  minDelta: shakeConfig.minDelta,
+  noiseFactor: shakeConfig.noiseFactor,
   sampleIntervalMs: shakeConfig.sampleIntervalMs,
   cooldownMs: shakeConfig.cooldownMs,
   onSample: (delta) => {
@@ -276,20 +277,19 @@ function setupShake() {
     ? appConfig.ui.shakeHint
     : appConfig.ui.shakeHintTap
 
+  // Meneo periodico en vez de un latido continuo: la cinta pide que agiten el telefono,
+  // asi que ella misma se agita. La rotacion se declara en cada paso porque los 45 grados
+  // de base vienen del CSS; si se omitieran, GSAP arrancaria desde 0 y daria un salto.
   const pulse = state.reducedMotion
     ? null
-    : gsap.fromTo(
-        shakeHint,
-        { scale: 1, rotate: 45 },
-        {
-          scale: 1.05,
-          rotate: 45,
-          duration: 0.9,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-        }
-      )
+    : gsap
+        .timeline({ repeat: -1, repeatDelay: 2.4 })
+        .set(shakeHint, { rotate: 45, scale: 1 })
+        .to(shakeHint, { rotate: 41, scale: 1.06, duration: 0.09, ease: 'sine.out' })
+        .to(shakeHint, { rotate: 49, duration: 0.11, ease: 'sine.inOut' })
+        .to(shakeHint, { rotate: 42, duration: 0.1, ease: 'sine.inOut' })
+        .to(shakeHint, { rotate: 47.5, duration: 0.09, ease: 'sine.inOut' })
+        .to(shakeHint, { rotate: 45, scale: 1, duration: 0.24, ease: 'elastic.out(1, 0.45)' })
 
   shakeHint.addEventListener('click', () => {
     if (!shakeDetector.needsPermission || isArmed) {
@@ -363,14 +363,15 @@ function setupDebugPanel() {
   }
 
   window.setInterval(() => {
-    const { eventCount, readingCount } = shakeDetector.getCounters()
+    const { eventCount, readingCount, noiseFloor, effectiveThreshold } =
+      shakeDetector.getCounters()
 
     panel.textContent = [
       `estado    ${describeState(eventCount, readingCount)}`,
       `permiso   ${shakeDetector.needsPermission ? 'requerido (iOS)' : 'no requerido'}`,
       `eventos   ${eventCount}   lecturas ${readingCount}`,
       `delta     ${diagnostics.lastDelta.toFixed(1)}   maximo ${diagnostics.maxDelta.toFixed(1)}`,
-      `umbral    ${shakeConfig.threshold}`,
+      `ruido     ${noiseFloor.toFixed(2)}   umbral ${effectiveThreshold.toFixed(1)}`,
       `rafagas   ${diagnostics.burstCount}`,
     ].join('\n')
   }, 200)

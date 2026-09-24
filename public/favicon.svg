@@ -1,20 +1,13 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="36" fill="url(#bg)" />
   <path
-    d="M64 104C64 104 26 80 26 54C26 39 37 29 50 29C57 29 62 32 64 37C66 32 71 29 78 29C91 29 102 39 102 54C102 80 64 104 64 104Z"
-    fill="#D81E5B"
-    stroke="#7A0F33"
-    stroke-width="5"
-    stroke-linejoin="round"
+    d="M64 118C64 118 6 82 6 44C6 22 22 6 42 6C53 6 60 11 64 18C68 11 75 6 86 6C106 6 122 22 122 44C122 82 64 118 64 118Z"
+    fill="url(#heart)"
   />
-  <path d="M46 48C48 43 53 40 58 40" stroke="#FFD6E1" stroke-width="6" stroke-linecap="round" />
-  <circle cx="98" cy="30" r="5" fill="#FFF5F7" />
-  <circle cx="28" cy="94" r="4" fill="#FFF5F7" />
   <defs>
-    <linearGradient id="bg" x1="16" y1="14" x2="112" y2="118" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF5F7" />
-      <stop offset="0.52" stop-color="#FFC6D4" />
-      <stop offset="1" stop-color="#E03A63" />
-    </linearGradient>
+    <radialGradient id="heart" cx="0.38" cy="0.32" r="0.72">
+      <stop stop-color="#F35C8B" />
+      <stop offset="0.55" stop-color="#D81E5B" />
+      <stop offset="1" stop-color="#C11450" />
+    </radialGradient>
   </defs>
 </svg>

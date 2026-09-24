@@ -36,8 +36,13 @@ export const audioConfig = {
 }
 
 export const shakeConfig = {
-  // Calibrable desde ?debug=1, que muestra el delta real del dispositivo.
-  threshold: 16,
+  // Umbral minimo absoluto. Se peca de sensible a proposito: que sobren corazones es
+  // inofensivo, que falten deja el regalo pareciendo roto.
+  minDelta: 9,
+  // El umbral efectivo es max(minDelta, suelo de ruido * noiseFactor). La escala del
+  // acelerometro varia entre dispositivos, asi que el detector la aprende en vez de
+  // depender de una constante calibrada a ojo.
+  noiseFactor: 5,
   sampleIntervalMs: 90,
   cooldownMs: 1200,
 }

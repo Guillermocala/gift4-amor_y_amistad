@@ -5,7 +5,8 @@ type MotionEventConstructor = typeof DeviceMotionEvent & {
 export type ShakeAccess = 'granted' | 'denied' | 'unsupported'
 
 interface ShakeOptions {
-  threshold: number
+  minDelta: number
+  noiseFactor: number
   sampleIntervalMs: number
   cooldownMs: number
   onShake: () => void
@@ -36,6 +37,9 @@ export function createShakeDetector(options: ShakeOptions) {
   // -llegan pero sin lectura util- de -llegan bien pero el umbral es alto-.
   let eventCount = 0
   let readingCount = 0
+  // Suelo de ruido del dispositivo, aprendido en marcha.
+  let noiseFloor = 0
+  let effectiveThreshold = options.minDelta
 
   function handleMotion(event: DeviceMotionEvent) {
     eventCount += 1
@@ -69,9 +73,19 @@ export function createShakeDetector(options: ShakeOptions) {
       Math.abs(sample.z - lastSample.z)
 
     lastSample = sample
+
+    const isQuiet = delta < effectiveThreshold
+
+    // El suelo solo aprende de muestras tranquilas. Si aprendiera de todas, durante un
+    // agitado sostenido subiria persiguiendo a la senal y el umbral dejaria de dispararse.
+    if (isQuiet) {
+      noiseFloor = noiseFloor * 0.95 + delta * 0.05
+      effectiveThreshold = Math.max(options.minDelta, noiseFloor * options.noiseFactor)
+    }
+
     options.onSample?.(delta)
 
-    if (delta > options.threshold && now - lastShakeAt > options.cooldownMs) {
+    if (!isQuiet && now - lastShakeAt > options.cooldownMs) {
       lastShakeAt = now
       options.onShake()
     }
@@ -133,6 +147,6 @@ export function createShakeDetector(options: ShakeOptions) {
     isSupported: Boolean(motionConstructor),
     needsPermission,
     isListening: () => isListening,
-    getCounters: () => ({ eventCount, readingCount }),
+    getCounters: () => ({ eventCount, readingCount, noiseFloor, effectiveThreshold }),
   }
 }

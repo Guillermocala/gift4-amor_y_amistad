@@ -45,18 +45,18 @@ def heart_value(x, y):
 
 
 def write_png(path, width, height, pixels):
-    """pixels: lista de filas, cada una con width tuplas (r, g, b)."""
+    """pixels: lista de filas, cada una con width tuplas (r, g, b, a)."""
     raw = bytearray()
     for row in pixels:
         raw.append(0)  # filtro None
-        for r, g, b in row:
-            raw += bytes((r, g, b))
+        for r, g, b, a in row:
+            raw += bytes((r, g, b, a))
 
     def chunk(tag, data):
         body = tag + data
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
 
-    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)  # 8 bits, RGB
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)  # 8 bits, RGBA
     png = (
         b"\x89PNG\r\n\x1a\n"
         + chunk(b"IHDR", header)
@@ -81,38 +81,39 @@ def rounded_corner_alpha(x, y, size, radius):
 
 
 def make_icon(size):
-    """Icono cuadrado: corazon claro sobre la caja redondeada con degradado."""
-    radius = size * 0.28
-    # El corazon ocupa algo menos de dos tercios del icono: a tamano de favicon
-    # necesita aire alrededor para no leerse como una mancha.
-    scale = size / 3.4
-    cx, cy = size / 2.0, size * 0.48
+    """Corazon recortado sobre transparencia, sin caja ni fondo.
+
+    El suavizado de bordes lo aporta el canal alfa: el supermuestreo 2x2 cuenta
+    cuantas muestras caen dentro de la figura, y esa fraccion es la opacidad.
+    """
+    # Sin caja de fondo el corazon puede ocupar casi todo el lienzo.
+    scale = size / 2.45
+    cx, cy = size / 2.0, size * 0.52
     rows = []
     for py in range(size):
         row = []
         for px in range(size):
-            # Antialiasing por supermuestreo 2x2.
             acc = [0.0, 0.0, 0.0]
+            inside = 0
             for sy in (0.25, 0.75):
                 for sx in (0.25, 0.75):
                     x, y = px + sx, py + sy
-                    diagonal = (x + y) / (2.0 * size)
-                    colour = gradient(diagonal)
                     hx, hy = (x - cx) / scale, (y - cy) / scale
-                    value = heart_value(hx, hy)
-                    if value <= 0:
-                        # Sin contorno: la funcion implicita del corazon no es una
-                        # distancia, asi que una banda de epsilon fijo da un grosor
-                        # de trazo descontrolado y se ve como un borron.
-                        highlight = max(0.0, 1.0 - math.hypot(hx + 0.3, hy + 0.34) * 1.35)
-                        colour = lerp(HEART, GLOSS, min(0.42, highlight))
-                    box = rounded_corner_alpha(x, y, size, radius)
-                    # Fuera de la caja redondeada se deja blanco, que es lo que
-                    # esperan los navegadores en un PNG sin canal alfa.
-                    colour = lerp((255, 255, 255), colour, box)
+                    if heart_value(hx, hy) > 0:
+                        continue
+                    inside += 1
+                    # Sin contorno: la funcion implicita del corazon no es una
+                    # distancia, asi que una banda de epsilon fijo da un grosor
+                    # de trazo descontrolado y se ve como un borron.
+                    highlight = max(0.0, 1.0 - math.hypot(hx + 0.3, hy + 0.34) * 1.35)
+                    colour = lerp(HEART, GLOSS, min(0.42, highlight))
                     for i in range(3):
                         acc[i] += colour[i]
-            row.append(tuple(round(component / 4.0) for component in acc))
+            if inside == 0:
+                row.append((0, 0, 0, 0))
+                continue
+            rgb = tuple(round(component / inside) for component in acc)
+            row.append(rgb + (round(255 * inside / 4.0),))
         rows.append(row)
     return rows
 
@@ -153,7 +154,7 @@ def make_og_image(width=1200, height=630):
                             colour = lerp(colour, palette[tone], 0.86)
                     for i in range(3):
                         acc[i] += colour[i]
-            row.append(tuple(round(component / 4.0) for component in acc))
+            row.append(tuple(round(component / 4.0) for component in acc) + (255,))
         rows.append(row)
     return rows
 
