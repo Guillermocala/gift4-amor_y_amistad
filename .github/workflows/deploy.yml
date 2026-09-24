@@ -16,7 +16,9 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # false a proposito: cancelar un despliegue a medio camino puede dejar la publicacion
+  # en un estado inconsistente.
+  cancel-in-progress: false
 
 jobs:
   build:
