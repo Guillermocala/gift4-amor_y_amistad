@@ -27,6 +27,11 @@ function getMotionConstructor() {
   return window.DeviceMotionEvent as MotionEventConstructor
 }
 
+// Chrome en Android no entrega eventos devicemotion hasta que ha habido actividad del
+// usuario en la pagina. Estos son los gestos que valen como tal; touchmove entra porque
+// un intento de desplazar la pantalla suele ser lo primero que se hace al abrir el enlace.
+const UNLOCK_EVENTS = ['pointerdown', 'touchstart', 'touchmove', 'keydown'] as const
+
 export function createShakeDetector(options: ShakeOptions) {
   const motionConstructor = getMotionConstructor()
   let lastSample: Sample | null = null
@@ -40,6 +45,7 @@ export function createShakeDetector(options: ShakeOptions) {
   // Suelo de ruido del dispositivo, aprendido en marcha.
   let noiseFloor = 0
   let effectiveThreshold = options.minDelta
+  let hasUserGesture = false
 
   function handleMotion(event: DeviceMotionEvent) {
     eventCount += 1
@@ -131,6 +137,26 @@ export function createShakeDetector(options: ShakeOptions) {
     return 'granted'
   }
 
+  // Red de seguridad: al primer gesto en cualquier parte del documento se vuelve a
+  // enganchar el listener. No sustituye al enganche inicial, lo respalda, porque el
+  // navegador puede haber estado descartando los eventos hasta ese momento.
+  function rearmOnFirstGesture() {
+    const handleGesture = () => {
+      hasUserGesture = true
+
+      UNLOCK_EVENTS.forEach((eventName) => {
+        document.removeEventListener(eventName, handleGesture, true)
+      })
+
+      stop()
+      startListening()
+    }
+
+    UNLOCK_EVENTS.forEach((eventName) => {
+      document.addEventListener(eventName, handleGesture, { capture: true, passive: true })
+    })
+  }
+
   // Solo iOS expone requestPermission. En el resto de plataformas no hay permiso que pedir,
   // asi que el sensor se engancha ya: esperar un toque dejaba el agitado muerto en Android,
   // porque nada le dice a nadie que primero hay que tocar la cinta.
@@ -139,6 +165,7 @@ export function createShakeDetector(options: ShakeOptions) {
 
   if (motionConstructor && !needsPermission) {
     startListening()
+    rearmOnFirstGesture()
   }
 
   return {
@@ -147,6 +174,12 @@ export function createShakeDetector(options: ShakeOptions) {
     isSupported: Boolean(motionConstructor),
     needsPermission,
     isListening: () => isListening,
-    getCounters: () => ({ eventCount, readingCount, noiseFloor, effectiveThreshold }),
+    getCounters: () => ({
+      eventCount,
+      readingCount,
+      noiseFloor,
+      effectiveThreshold,
+      hasUserGesture,
+    }),
   }
 }
