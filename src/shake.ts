@@ -9,6 +9,7 @@ interface ShakeOptions {
   sampleIntervalMs: number
   cooldownMs: number
   onShake: () => void
+  onSample?: (delta: number) => void
 }
 
 interface Sample {
@@ -31,14 +32,22 @@ export function createShakeDetector(options: ShakeOptions) {
   let lastSampleAt = 0
   let lastShakeAt = 0
   let isListening = false
+  // Contadores para el panel de diagnostico: separan -no llegan eventos- de
+  // -llegan pero sin lectura util- de -llegan bien pero el umbral es alto-.
+  let eventCount = 0
+  let readingCount = 0
 
   function handleMotion(event: DeviceMotionEvent) {
+    eventCount += 1
+
     // acceleration llega null en varios dispositivos; accelerationIncludingGravity siempre viene.
     const reading = event.accelerationIncludingGravity
 
     if (!reading || reading.x === null || reading.y === null || reading.z === null) {
       return
     }
+
+    readingCount += 1
 
     const now = Date.now()
 
@@ -60,6 +69,7 @@ export function createShakeDetector(options: ShakeOptions) {
       Math.abs(sample.z - lastSample.z)
 
     lastSample = sample
+    options.onSample?.(delta)
 
     if (delta > options.threshold && now - lastShakeAt > options.cooldownMs) {
       lastShakeAt = now
@@ -107,9 +117,22 @@ export function createShakeDetector(options: ShakeOptions) {
     return 'granted'
   }
 
+  // Solo iOS expone requestPermission. En el resto de plataformas no hay permiso que pedir,
+  // asi que el sensor se engancha ya: esperar un toque dejaba el agitado muerto en Android,
+  // porque nada le dice a nadie que primero hay que tocar la cinta.
+  const needsPermission =
+    Boolean(motionConstructor) && typeof motionConstructor?.requestPermission === 'function'
+
+  if (motionConstructor && !needsPermission) {
+    startListening()
+  }
+
   return {
     requestAccess,
     stop,
     isSupported: Boolean(motionConstructor),
+    needsPermission,
+    isListening: () => isListening,
+    getCounters: () => ({ eventCount, readingCount }),
   }
 }

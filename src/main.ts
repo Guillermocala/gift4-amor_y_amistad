@@ -97,11 +97,19 @@ const emitter = createHeartsEmitter(heartsLayer, heartsConfig, {
 
 const ambientAudio = createAmbientAudio(audioConfig)
 
+// Lecturas crudas del sensor, solo para el panel de ?debug=1.
+const diagnostics = { lastDelta: 0, maxDelta: 0, burstCount: 0 }
+
 const shakeDetector = createShakeDetector({
   threshold: shakeConfig.threshold,
   sampleIntervalMs: shakeConfig.sampleIntervalMs,
   cooldownMs: shakeConfig.cooldownMs,
+  onSample: (delta) => {
+    diagnostics.lastDelta = delta
+    diagnostics.maxDelta = Math.max(diagnostics.maxDelta, delta)
+  },
   onShake: () => {
+    diagnostics.burstCount += 1
     emitter.startBurst()
   },
 })
@@ -119,6 +127,7 @@ trigger.addEventListener('click', () => {
 
 setupDrawer()
 setupShake()
+setupDebugPanel()
 
 boot().catch(() => {
   characterFrame.classList.add('is-error')
@@ -258,11 +267,14 @@ function stopTimer() {
 }
 
 function setupShake() {
-  let isArmed = false
-  let needsPermission = shakeDetector.isSupported
+  // Lo que decide si hay que armar algo es si la plataforma exige permiso, no si hay
+  // sensor: en Android hay sensor y no hay permiso, y el detector ya viene escuchando.
+  let isArmed = !shakeDetector.needsPermission
 
   shakeHint.setAttribute('aria-label', appConfig.ui.shakeHintLabel)
-  shakeHintLabel.textContent = needsPermission ? appConfig.ui.shakeHint : appConfig.ui.shakeHintTap
+  shakeHintLabel.textContent = shakeDetector.isSupported
+    ? appConfig.ui.shakeHint
+    : appConfig.ui.shakeHintTap
 
   const pulse = state.reducedMotion
     ? null
@@ -280,8 +292,9 @@ function setupShake() {
       )
 
   shakeHint.addEventListener('click', () => {
-    if (!needsPermission || isArmed) {
-      // Sin sensor (o ya armado) el tap dispara la rafaga directamente.
+    if (!shakeDetector.needsPermission || isArmed) {
+      // Sin permiso pendiente (o ya armado) el tap dispara la rafaga directamente.
+      diagnostics.burstCount += 1
       emitter.startBurst()
       return
     }
@@ -296,12 +309,71 @@ function setupShake() {
         return
       }
 
-      // Permiso negado o sensor ausente: la cinta pasa a ser el disparador.
-      needsPermission = false
+      // Permiso negado: la cinta se queda como unico disparador.
+      isArmed = true
       shakeHintLabel.textContent = appConfig.ui.shakeHintTap
       emitter.startBurst()
     })
   })
+}
+
+// Panel de diagnostico del sensor, solo con ?debug=1 en la URL. Existe porque el agitado
+// no se puede probar desde el entorno de desarrollo: hace falta un telefono real.
+function setupDebugPanel() {
+  if (!new URLSearchParams(window.location.search).has('debug')) {
+    return
+  }
+
+  const panel = document.createElement('pre')
+  panel.style.cssText = [
+    'position:fixed',
+    'left:8px',
+    'bottom:8px',
+    'z-index:9',
+    'margin:0',
+    'padding:10px 12px',
+    'max-width:calc(100vw - 16px)',
+    'border-radius:12px',
+    'background:rgba(42,13,24,0.86)',
+    'color:#ffe4ec',
+    'font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace',
+    'white-space:pre',
+    'pointer-events:none',
+  ].join(';')
+  appRoot.appendChild(panel)
+
+  function describeState(eventCount: number, readingCount: number) {
+    if (!shakeDetector.isSupported) {
+      return 'SIN DeviceMotionEvent (el navegador no ofrece el sensor)'
+    }
+
+    if (!shakeDetector.isListening()) {
+      return 'sensor no armado (falta tocar la cinta para dar permiso)'
+    }
+
+    if (eventCount === 0) {
+      return 'escuchando pero NO llegan eventos del sensor'
+    }
+
+    if (readingCount === 0) {
+      return 'llegan eventos pero sin lectura utilizable'
+    }
+
+    return 'recibiendo lecturas correctamente'
+  }
+
+  window.setInterval(() => {
+    const { eventCount, readingCount } = shakeDetector.getCounters()
+
+    panel.textContent = [
+      `estado    ${describeState(eventCount, readingCount)}`,
+      `permiso   ${shakeDetector.needsPermission ? 'requerido (iOS)' : 'no requerido'}`,
+      `eventos   ${eventCount}   lecturas ${readingCount}`,
+      `delta     ${diagnostics.lastDelta.toFixed(1)}   maximo ${diagnostics.maxDelta.toFixed(1)}`,
+      `umbral    ${shakeConfig.threshold}`,
+      `rafagas   ${diagnostics.burstCount}`,
+    ].join('\n')
+  }, 200)
 }
 
 function setupDrawer() {

@@ -5,11 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
-      content="Tarjeta interactiva para el Dia de Amor y Amistad."
+      content="Una tarjeta hecha a mano para el Dia de Amor y Amistad: agita el telefono y mira lo que pasa."
     />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#fff5f7" />
+
+    <!-- Chrome para Android no renderiza favicons SVG, asi que el SVG queda para
+         escritorio y los PNG cubren movil y pantalla de inicio. -->
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+
+    <!-- Vista previa al compartir. Las URL tienen que ser absolutas: los rastreadores
+         de WhatsApp y Telegram no resuelven rutas relativas. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:site_name" content="Feliz Dia de Amor y Amistad" />
+    <meta property="og:url" content="https://guillermocala.github.io/gift4-amor_y_amistad/" />
+    <meta property="og:title" content="Feliz Dia de Amor y Amistad" />
+    <meta
+      property="og:description"
+      content="Te hice una tarjeta. Abrela, agita el telefono y desliza el panel de la derecha."
+    />
+    <meta
+      property="og:image"
+      content="https://guillermocala.github.io/gift4-amor_y_amistad/og-image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Lluvia de corazones sobre un fondo rosado" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

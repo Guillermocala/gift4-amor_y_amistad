@@ -36,7 +36,8 @@ export const audioConfig = {
 }
 
 export const shakeConfig = {
-  threshold: 22,
+  // Calibrable desde ?debug=1, que muestra el delta real del dispositivo.
+  threshold: 16,
   sampleIntervalMs: 90,
   cooldownMs: 1200,
 }
