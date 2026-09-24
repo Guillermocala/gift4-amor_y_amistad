@@ -277,16 +277,13 @@ function setupShake() {
     ? appConfig.ui.shakeHint
     : appConfig.ui.shakeHintTap
 
-  // Meneo periodico en vez de un latido continuo: la cinta pide que agiten el telefono,
-  // asi que ella misma se agita. La rotacion se declara en cada paso porque los 45 grados
-  // de base vienen del CSS; si se omitieran, GSAP arrancaria desde 0 y daria un salto.
   // Sin tiempos muertos: la cinta pide agitar el telefono, asi que nunca se queda quieta.
   // Alterna un meneo rapido (el gesto) con un balanceo lento que la mantiene viva sin
   // resultar frenetica. La rotacion se declara en cada paso porque los 45 grados de base
   // vienen del CSS; omitirla haria que GSAP partiese de 0 con un salto visible.
-  const pulse = state.reducedMotion
-    ? null
-    : gsap
+  // Nunca se detiene: tocar la cinta no debe dejarla quieta.
+  if (!state.reducedMotion) {
+    gsap
         .timeline({ repeat: -1 })
         .set(shakeHint, { rotate: 45, scale: 1 })
         .to(shakeHint, { rotate: 39, scale: 1.07, duration: 0.1, ease: 'sine.out' })
@@ -297,6 +294,7 @@ function setupShake() {
         .to(shakeHint, { rotate: 47.5, duration: 0.7, ease: 'sine.inOut' })
         .to(shakeHint, { rotate: 42.5, duration: 0.9, ease: 'sine.inOut' })
         .to(shakeHint, { rotate: 45, duration: 0.7, ease: 'sine.inOut' })
+  }
 
   shakeHint.addEventListener('click', () => {
     if (!shakeDetector.needsPermission || isArmed) {
@@ -310,8 +308,6 @@ function setupShake() {
       if (access === 'granted') {
         isArmed = true
         shakeHintLabel.textContent = appConfig.ui.shakeHintArmed
-        pulse?.kill()
-        gsap.set(shakeHint, { scale: 1, rotate: 45 })
         emitter.startBurst()
         return
       }
@@ -370,12 +366,13 @@ function setupDebugPanel() {
   }
 
   window.setInterval(() => {
-    const { eventCount, readingCount, noiseFloor, effectiveThreshold, hasUserGesture } =
+    const { eventCount, readingCount, noiseFloor, effectiveThreshold, hasUserGesture, source } =
       shakeDetector.getCounters()
 
     panel.textContent = [
       `estado    ${describeState(eventCount, readingCount)}`,
-      `permiso   ${shakeDetector.needsPermission ? 'requerido (iOS)' : 'no requerido'}`,
+      `permiso   ${shakeDetector.needsPermission ? 'REQUERIDO por el navegador' : 'no requerido'}`,
+      `fuente    ${source}`,
       `eventos   ${eventCount}   lecturas ${readingCount}`,
       `delta     ${diagnostics.lastDelta.toFixed(1)}   maximo ${diagnostics.maxDelta.toFixed(1)}`,
       `ruido     ${noiseFloor.toFixed(2)}   umbral ${effectiveThreshold.toFixed(1)}`,
